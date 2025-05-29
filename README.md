@@ -1,18 +1,65 @@
-# Social Network Analysis and Friend Recommendation System with Breadth First Search Algorithm
-This program analyze relation between users and recommend new friends to user based on Breadth First Search Algorithm
+FriendConnect: A BFS-Based Social Network Analyzer
+Leveraging Discrete Mathematics to Map and Recommend Connections
 
-## How to run program
-1. First, import the sql data to your local sql and then change the user, host, database, port, and password based on your local <br>
-2. Second, run this in the root directory
-```bash
-py main.py
-```
-## Program Screenshots
-### Social network analysis <br>
-![image](https://github.com/MarcelRyan/sna-and-friend-recommendation-bfs/assets/88817627/294a198b-db62-4024-a2f1-f1a571c923fc) <br>
-### Get n-level friend of an user <br>
-![image](https://github.com/MarcelRyan/sna-and-friend-recommendation-bfs/assets/88817627/853db404-62f2-46a3-a752-62f624125d2a) <br>
-### Friend Recommendation Program <br>
-![image](https://github.com/MarcelRyan/sna-and-friend-recommendation-bfs/assets/88817627/841f771b-f8a3-4e03-89a6-8cd504554eb3)
+Project Description
+This Python project analyzes social networks using Breadth-First Search (BFS) to:
 
+🔍 Discover multi-level connections (up to 4 degrees deep)
 
+🤝 Recommend friends based on mutual connections
+
+📊 Visualize networks with color-coded nodes (Matplotlib)
+
+📝 Justify suggestions transparently (e.g., "3 mutual friends with Juliet")
+
+Key Features:
+✔ Shakespearean social network dataset pre-loaded
+✔ MySQL integration for scalable data storage
+✔ Interactive graph visualization
+✔ Educational demonstration of graph theory
+
+Guidelines to Run the Project
+Prerequisites
+Python 3.8+
+
+MySQL Server 8.0+
+
+Libraries: mysql-connector-python, networkx, matplotlib
+
+Setup
+Clone the repository:
+
+bash
+git clone https://github.com/yourusername/FriendConnect.git
+cd FriendGraph
+Install dependencies:
+
+bash
+pip install -r requirements.txt
+Database Setup:
+
+Import the sample dataset:
+
+bash
+mysql -u root -p makalah_stima < data.sql
+Configure MySQL credentials in config.py:
+
+python
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'yourpassword',
+    'database': 'makalah_stima'
+}
+Execution
+Run the main program:
+
+bash
+python main.py
+Follow the menu prompts to:
+
+Analyze connections between users
+
+Get friend recommendations
+
+Visualize the social graph

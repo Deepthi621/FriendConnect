@@ -1,127 +1,154 @@
 import mysql.connector
+import networkx as nx
+import matplotlib.pyplot as plt
 from classtype.People import People
 from classtype.Graph import Graph
 from algorithm.recommender import recommendFriends
 from algorithm.sna import socialNetworkAnalysis, getNLevelFriend
 
+def count_mutual_friends(graph, person1, person2):
+    """Count mutual friends between two people"""
+    friends1 = set(person1.getFriends())
+    friends2 = set(person2.getFriends())
+    return friends1 & friends2
+
+def draw_social_graph(graph, target_user=None):
+    """Visualize the social network with highlighted recommendations"""
+    G = nx.Graph()
+    
+    # Add all nodes and edges using Graph class methods
+    for person in graph.getPersons():
+        G.add_node(person.getName())
+        for friend in person.getFriends():
+            G.add_edge(person.getName(), friend)
+    
+    # Set node colors
+    node_colors = []
+    recommended = []
+    if target_user:
+        recommended = [friend[0] for friend in recommendFriends(graph, target_user)]
+    
+    for node in G.nodes():
+        if target_user and node == target_user.getName():
+            node_colors.append('red')  # Target user
+        elif node in recommended:
+            node_colors.append('orange')  # Recommended
+        else:
+            node_colors.append('skyblue')  # Others
+    
+    # Draw graph
+    pos = nx.spring_layout(G, seed=42)
+    plt.figure(figsize=(10, 7))
+    nx.draw(G, pos, with_labels=True, node_color=node_colors, node_size=800)
+    plt.title(f"Social Network - {target_user.getName()}" if target_user else "Full Network")
+    plt.show()
+
+# Database connection and main program
+conn = None
 try:
     conn = mysql.connector.connect(
-        host = 'localhost',
-        user = 'root',
-        port = 3307,
-        password = 'password',
-        database = 'makalah_stima'
+        host='localhost',
+        user='root',
+        port=3306,
+        password='Flydeepthi@1',
+        database='makalah_stima'
     )
-
-    cursor = conn.cursor()
-
-    # Get all person in the database
-
-    cursor.execute("SELECT * FROM Person")
-
-    records = cursor.fetchall()
-
-    # List all person in the database
-    listOfPerson = []
-
-    for row in records:
-        person = People(row[0])
-        listOfPerson.append(person)
     
-    # Get all person friend in database
-    for person in listOfPerson:
-        cursor.execute("SELECT friend_name FROM friends WHERE name = %s", (person.getName(),))
+    if conn.is_connected():
+        print("✅ Connected to MySQL Database!")
+        cursor = conn.cursor()
 
-        # Fetch the data
-        records = cursor.fetchall()
+        # Load all people
+        cursor.execute("SELECT * FROM Person")
+        listOfPerson = [People(row[0]) for row in cursor.fetchall()]
 
-        # Assign the data to a list
-        listOfFriends = []
+        # Load friendships
+        for person in listOfPerson:
+            cursor.execute("SELECT friend_name FROM friends WHERE name = %s", (person.getName(),))
+            person.setFriends([row[0] for row in cursor.fetchall()])
 
-        for row in records:
-            listOfFriends.append(row[0])
-        
-        # Assign the list to the person
-        person.setFriends(listOfFriends)
-    
-    
-    # Set the graph
-    graph = Graph(listOfPerson)
+        graph = Graph(listOfPerson)
 
-    print("Welcome to Social Network Analysis and Friend Recommendation Program!!!")
-    print("Please choose what do you want to do with this program :")
-    print("1. Social Network Analysis Program")
-    print("2. Friend Recommendation Program")
-    
-    choice = int(input("Input : "))
-    
-    # Friend Recommendation Program
-    if (choice == 2):
-        # Print all names to select for the recommender system
-        print("List of person in the database: ")
-        graph.printNames()
+        # Main menu
+        print("\nWelcome to Social Network Analysis and Friend Recommendation Program!!!")
+        choice = int(input("1. Social Network Analysis\n2. Friend Recommendation\nInput: "))
 
-        inputIndex = int(input("Select a person to be searched by number from the above list to search : "))
-
-        person = graph.getPersonByIndex(inputIndex-1)
-
-        # Get recommended Friends
-        recommendedFriends = recommendFriends(graph, person)
-
-        # Print all the recommended friend names
-        print("The recommended friend for you are : ")
-        for i in range(len(recommendedFriends)):
-            print(f"{i+1}. {recommendedFriends[i]}")
-    
-    else:
-
-        print("Select what do you want to analysis : ")
-        print("1. Relation between person A or person B")
-        print("2. Get all the person that is n-level friend of person A")
-
-        choice = int(input("Input: "))
-
-        # Print all names to select for the recommender system
-        print("List of person in the database: ")
-        graph.printNames()
-
-        # Social network analysis to analyze relation between 2 person
-        if (choice == 1):
-            firstPersonIndex = int(input("Select the first person by the number from the above list : "))
-            secondPersonIndex = int(input("Select the first person by the number from the above list : "))
-
-            firstPerson = graph.getPersonByIndex(firstPersonIndex-1)
-            secondPerson = graph.getPersonByIndex(secondPersonIndex-1)
-
-            depth = socialNetworkAnalysis(graph, firstPerson, secondPerson)
-
-            if depth == 1:
-                print(f"{secondPerson.getName()} is the first level friend of {firstPerson.getName()}")
-            elif depth == 2:
-                print(f"{secondPerson.getName()} is the second level friend of {firstPerson.getName()}")
-            elif depth == 3:
-                print(f"{secondPerson.getName()} is the third level friend of {firstPerson.getName()}")
-            elif depth == 4:
-                print(f"{secondPerson.getName()} is the fourth level friend of {firstPerson.getName()}")
-
-        # Social network analysis to get n-level friend of a person
-        else:
-            personIndex = int(input("Select the person you want to analysis by the number from above list : "))
-            level = int(input("Select level : "))
-
-            person = graph.getPersonByIndex(personIndex-1)
-
-            nLevelFriend = getNLevelFriend(graph, person, level)
-
-            print(f"All of your {level}-level friend are : ")
+        if choice == 2:
+            # Print all names with numbers
+            print("List of people in the database:")
+            for i, person in enumerate(graph.getPersons(), 1):
+                print(f"{i}. {person.getName()}")
             
-            for i in range(len(nLevelFriend)):
-                print(f"{i+1}. {nLevelFriend[i]}")
+            # Get user selection
+            inputIndex = int(input("Select person by number: "))
+            person = graph.getPersons()[inputIndex - 1]
+            
+            # Get recommendations with mutual friend info
+            recommendations = []
+            for potential_friend in graph.getPersons():
+                if (potential_friend.getName() != person.getName() and 
+                    potential_friend.getName() not in person.getFriends()):
+                    
+                    mutuals = count_mutual_friends(graph, person, potential_friend)
+                    if mutuals:
+                        recommendations.append({
+                            'name': potential_friend.getName(),
+                            'mutual_count': len(mutuals),
+                            'mutual_names': sorted(list(mutuals))
+                        })
+            
+            # Sort by mutual friend count (descending)
+            recommendations.sort(key=lambda x: -x['mutual_count'])
+            
+            # Display results with justification
+            print("\nRecommended friends (sorted by mutual connections):")
+            for i, rec in enumerate(recommendations, 1):
+                mutual_names = ", ".join(rec['mutual_names'])
+                print(f"{i}. {rec['name']} (Mutual friends: {rec['mutual_count']} - {mutual_names})")
+            
+            # Show visualization
+            draw_social_graph(graph, person)
+
+        else:
+            analysis_choice = int(input("1. Relation between 2 people\n2. N-level friends\nInput: "))
+            
+            # Print all names with numbers
+            print("List of people in the database:")
+            for i, person in enumerate(graph.getPersons(), 1):
+                print(f"{i}. {person.getName()}")
+            
+            if analysis_choice == 1:
+                p1_index = int(input("First person number: ")) - 1
+                p2_index = int(input("Second person number: ")) - 1
+                p1 = graph.getPersons()[p1_index]
+                p2 = graph.getPersons()[p2_index]
+                
+                depth = socialNetworkAnalysis(graph, p1, p2)
+                level_names = ["not connected", "1st", "2nd", "3rd", "4th"]
+                print(f"\n{p2.getName()} is {level_names[depth]} level friend of {p1.getName()}")
+                
+                # Show mutual friends if connected
+                if 1 <= depth <= 4:
+                    mutuals = count_mutual_friends(graph, p1, p2)
+                    if mutuals:
+                        print(f"Mutual friends: {', '.join(mutuals)}")
+                    else:
+                        print("No mutual friends")
+            else:
+                person_index = int(input("Person number: ")) - 1
+                person = graph.getPersons()[person_index]
+                level = int(input("Friend level (1-4): "))
+                
+                friends = getNLevelFriend(graph, person, level)
+                print(f"\n{level}-level friends:")
+                for i, friend in enumerate(friends, 1):
+                    print(f"{i}. {friend}")
 
 except mysql.connector.Error as e:
-    print("Error reading data from MYSQL table")
+    print("❌ Database error:", e)
+except Exception as e:
+    print("❌ An error occurred:", e)
 finally:
-    if conn.is_connected():
+    if conn and conn.is_connected():
         conn.close()
-        cursor.close()
-
+        print("🔌 Connection closed")
